@@ -93,7 +93,7 @@ for(const m of selected.slice(filePage*per,(filePage+1)*per)){
 const x=totals.get(m.key),card=document.createElement("div");card.className="file";
 const title=document.createElement("strong");title.textContent=m.name;
 const holder=document.createElement("div");holder.className="thumb";
-if(m.thumb){const im=new Image();im.src=m.thumb;im.alt=m.name;holder.append(im)}else holder.textContent=files.has(m.key)?"이미지 미리보기 생성 중":"이미지 재연결 필요";
+if(m.thumbV9){const im=new Image();im.src=m.thumbV9;im.alt=m.name;holder.append(im)}else holder.textContent=files.has(m.key)?"투명 미리보기 생성 중":"PNG 다시 연결 필요";
 const countLabel=document.createElement("span");countLabel.className="hint";countLabel.textContent=num(x.done)+" / "+(m.count===null?"격자 미확인":num(m.count))+" · 확정 "+num(x.confirmed);
 const track=document.createElement("div");track.className="bar";const fill=document.createElement("i");fill.style.width=x.total?100*x.done/x.total+"%":"0%";track.append(fill);
 const buttons=document.createElement("div");buttons.className="row";
@@ -102,18 +102,18 @@ const full=document.createElement("button");full.textContent="원본 보기";ful
 buttons.append(open,full);
 const path=document.createElement("span");path.className="hint";path.textContent=m.path;
 card.append(title,holder,countLabel,track,buttons,path);frag.append(card);
-if(!m.thumb&&files.has(m.key))queue.push({m,holder,countLabel});
+if(!m.thumbV9&&files.has(m.key))queue.push({m,holder,countLabel});
 }
 dest.append(frag);
 (async()=>{thumbRunning=true;
 for(const job of queue){if(token!==previewToken)break;
 try{const m=job.m,bmp=await loadImage(files.get(m.key));if(token!==previewToken){bmp.close?.();break}
 const cc=Math.floor(bmp.width/m.cw),rr=Math.floor(bmp.height/m.ch);m.width=bmp.width;m.height=bmp.height;m.count=cc*rr;
-const c=document.createElement("canvas");c.width=200;c.height=120;const ctx=c.getContext("2d");ctx.fillStyle="#edf1f4";ctx.fillRect(0,0,200,120);
+const c=document.createElement("canvas");c.width=200;c.height=120;const ctx=c.getContext("2d");ctx.clearRect(0,0,200,120);
 if(m.count>0){for(let j=0;j<12;j++){const n=Math.min(m.count-1,Math.floor((j+.5)*m.count/12)),sx=n%cc*m.cw,sy=Math.floor(n/cc)*m.ch,sc=Math.min(46/m.cw,37/m.ch),w=m.cw*sc,h=m.ch*sc;
 ctx.drawImage(bmp,sx,sy,m.cw,m.ch,(j%4)*50+(50-w)/2,Math.floor(j/4)*40+(40-h)/2,w,h)}}
-m.thumb=c.toDataURL("image/webp",.7);bmp.close?.();putMeta(m);
-if(job.holder.isConnected){const image=new Image();image.src=m.thumb;image.alt=m.name;job.holder.replaceChildren(image);const s=stats().get(m.key);job.countLabel.textContent=num(s.done)+" / "+num(m.count)+" · 확정 "+num(s.confirmed)}
+m.thumbV9=c.toDataURL("image/png");bmp.close?.();putMeta(m);
+if(job.holder.isConnected){const image=new Image();image.src=m.thumbV9;image.alt=m.name;job.holder.replaceChildren(image);const s=stats().get(m.key);job.countLabel.textContent=num(s.done)+" / "+num(m.count)+" · 확정 "+num(s.confirmed)}
 }catch(e){if(job.holder.isConnected)job.holder.textContent="미리보기 오류"}
 await new Promise(r=>setTimeout(r,0))}
 thumbRunning=false})();
@@ -215,7 +215,7 @@ $("modalTitle").textContent=registry.get(key).name+" · PNG 전체";$("modalInfo
 async function goBack(){try{await flush()}catch(e){saveMsg("저장 실패: JSON 백업 필요")}
 $("work").hidden=true;$("library").hidden=false;image?.close?.();image=null;active="";renderFiles()}
 async function adjacent(d){const a=[...registry.values()].filter(m=>files.has(m.key)).sort((a,b)=>a.name.localeCompare(b.name));const i=a.findIndex(m=>m.key===active);if(a[i+d])openPNG(a[i+d].key)}
-async function snapshot(){await flush();const s=stats();return{format:"PZ_PNG_REVIEWER_V8",exportedAt:new Date().toISOString(),note:"PNG 이미지 미포함. v31 접촉시트 확인은 개별 정체 확정 아님. Local ID는 별도 검증.",registry:[...registry.values()],summary:[...registry.values()].map(m=>{const x=s.get(m.key);return{png_name:m.name,png_key:m.key,path:m.path,width:m.width||"",height:m.height||"",grid_width:m.cw,grid_height:m.ch,local_id_verified:m.verified?1:0,total_cells:m.count==null?"":m.count,reviewed:x.done,confirmed:x.confirmed,candidates:x.candidate,observed:x.observed,held:x.hold,unreviewed:m.count==null?"":m.count-x.done,progress:m.count?(100*x.done/m.count).toFixed(2):""}}),reviews:[...reviews.values()]}}
+async function snapshot(){await flush();const s=stats();return{format:"PZ_PNG_REVIEWER_V9",exportedAt:new Date().toISOString(),note:"PNG 이미지 미포함. v31 접촉시트 확인은 개별 정체 확정 아님. Local ID는 별도 검증.",registry:[...registry.values()],summary:[...registry.values()].map(m=>{const x=s.get(m.key);return{png_name:m.name,png_key:m.key,path:m.path,width:m.width||"",height:m.height||"",grid_width:m.cw,grid_height:m.ch,local_id_verified:m.verified?1:0,total_cells:m.count==null?"":m.count,reviewed:x.done,confirmed:x.confirmed,candidates:x.candidate,observed:x.observed,held:x.hold,unreviewed:m.count==null?"":m.count-x.done,progress:m.count?(100*x.done/m.count).toFixed(2):""}}),reviews:[...reviews.values()],ui:{background:pzBackground}}}
 function csvValue(x){const s=Array.isArray(x)?x.join("|"):String(x??"");return /[,"\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
 function csv(arr,cols){return "\uFEFF"+cols.join(",")+"\r\n"+arr.map(r=>cols.map(k=>csvValue(r[k])).join(",")).join("\r\n")}
 function zip(entries){const te=new TextEncoder(),pieces=[],central=[];let offset=0;
@@ -231,7 +231,7 @@ download(zip([{name:"PZ_PNG_SUMMARY.csv",data:csv(data.summary,sc)},{name:"PZ_AL
 async function restore(f){try{const d=JSON.parse(await f.text());if(!Array.isArray(d.registry)||!Array.isArray(d.reviews))throw Error("복원할 수 없는 JSON 형식");await flush();
 for(const old of d.registry){if(!old.key||!old.name)continue;const m={...old,cw:old.cw||old.gridW||128,ch:old.ch||old.gridH||256};const prev=registry.get(m.key);if(prev?.thumb&&!m.thumb)m.thumb=prev.thumb;registry.set(m.key,m);putMeta(m)}
 for(const old of d.reviews){const m=registry.get(old.pngKey);if(!m||!Number.isInteger(old.index))continue;const w=old.cw||old.w||old.gridW||m.cw,h=old.ch||old.h||old.gridH||m.ch,key=m.key+"|"+w+"x"+h+"|"+old.index,prev=reviews.get(key);if(prev&&String(prev.updatedAt||"")>String(old.updatedAt||""))continue;const r={...old,key,cw:w,ch:h,materials:Array.isArray(old.materials)?old.materials:String(old.materials||"").split("|").filter(Boolean)};reviews.set(key,r);pending.set(key,r)}
-await flush();renderFiles();msg("복원 완료 · "+reviews.size+"건. PNG 폴더를 다시 선택하면 기존 이미지와 연결됩니다.")}catch(e){msg("복원 실패: "+e.message)}}
+if(d.ui&&d.ui.background)setReviewBackground(d.ui.background);await flush();renderFiles();msg("복원 완료 · "+reviews.size+"건. PNG 폴더를 다시 선택하면 기존 이미지와 연결됩니다.")}catch(e){msg("복원 실패: "+e.message)}}
 $("files").onchange=e=>register(e.target.files);$("folder").onchange=e=>register(e.target.files);
 $("findPNG").oninput=()=>{filePage=0;renderFiles()};$("fileState").onchange=()=>{filePage=0;renderFiles()};
 $("fBack").onclick=()=>{filePage--;renderFiles()};$("fNext").onclick=()=>{filePage++;renderFiles()};
@@ -243,7 +243,7 @@ $("findTile").oninput=applyFilter;$("tileState").onchange=applyFilter;$("pageSiz
 for(const id of ["prev","prev2"])$(id).onclick=()=>{page--;renderCards()};for(const id of ["next","next2"])$(id).onclick=()=>{page++;renderCards()};
 $("jumpBtn").onclick=()=>{page=Math.max(0,Number($("jump").value)-1||0);renderCards()};
 $("nextTodo").onclick=()=>{const idx=filtered.findIndex(i=>getStatus(i)==="unreviewed");if(idx>=0){page=Math.floor(idx/Number($("pageSize").value));renderCards()}else saveMsg("미검수 타일이 없습니다.")};
-$("gridApply").onclick=()=>{const m=cur(),w=Number($("cw").value),h=Number($("ch").value);if(!m||!image||!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>image.width||h>image.height){saveMsg("격자 크기를 확인해 주세요.");return}if((w!==m.cw||h!==m.ch)&&stats().get(active).done>0&&!confirm("격자 변경 시 기존 검수는 이전 격자에 보존됩니다. 계속하시겠습니까?"))return;m.cw=w;m.ch=h;m.verified=false;m.thumb=null;columns=Math.floor(image.width/w);count=columns*Math.floor(image.height/h);m.count=count;putMeta(m);$("localOk").checked=false;$("gridInfo").textContent=columns+"열 · "+count+"개 격자 · Local ID 미확정";applyFilter();updateStats()};
+$("gridApply").onclick=()=>{const m=cur(),w=Number($("cw").value),h=Number($("ch").value);if(!m||!image||!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>image.width||h>image.height){saveMsg("격자 크기를 확인해 주세요.");return}if((w!==m.cw||h!==m.ch)&&stats().get(active).done>0&&!confirm("격자 변경 시 기존 검수는 이전 격자에 보존됩니다. 계속하시겠습니까?"))return;m.cw=w;m.ch=h;m.verified=false;m.thumb=null;m.thumbV9=null;columns=Math.floor(image.width/w);count=columns*Math.floor(image.height/h);m.count=count;putMeta(m);$("localOk").checked=false;$("gridInfo").textContent=columns+"열 · "+count+"개 격자 · Local ID 미확정";applyFilter();updateStats()};
 $("localOk").onchange=e=>{if(e.target.checked&&!confirm("공식 원본 정의에서 Local ID와 격자 번호가 일치함을 확인하셨습니까?")){e.target.checked=false;return}const m=cur();m.verified=e.target.checked;putMeta(m);renderCards()};
 $("closeModal").onclick=()=>$("modal").classList.remove("open");$("modal").onclick=e=>{if(e.target===$("modal"))$("modal").classList.remove("open")};
 for(const id of ["bgLibrary","bgWork","bgModal"])$(id).onchange=e=>setReviewBackground(e.target.value);
