@@ -28,7 +28,7 @@ const msg=s=>$("msg").textContent=s,saveMsg=s=>$("saveMsg").textContent=s;
 function download(data,name,type){const blob=data instanceof Blob?data:new Blob([data],{type:type||"text/plain;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
 async function init(){
 try{
-db=await new Promise((res,rej)=>{const r=indexedDB.open("PZ_PNG_REVIEWER_V7",1);r.onupgradeneeded=()=>{for(const name of ["registry","reviews"])if(!r.result.objectStoreNames.contains(name))r.result.createObjectStore(name,{keyPath:"key"})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+db=await new Promise((res,rej)=>{const r=indexedDB.open("PZ_PNG_REVIEWER_V6",1);r.onupgradeneeded=()=>{for(const name of ["registry","reviews"])if(!r.result.objectStoreNames.contains(name))r.result.createObjectStore(name,{keyPath:"key"})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 for(const [store,map] of [["registry",registry],["reviews",reviews]]){const result=await new Promise((res,rej)=>{const q=db.transaction(store,"readonly").objectStore(store).getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});for(const r of result)map.set(r.key,r)}
 msg("저장소 준비 완료 · PNG "+registry.size+"종 · 검수 기록 "+reviews.size+"건");
 }catch(e){msg("브라우저 자동 저장 실패. JSON 백업을 사용하세요: "+e.message)}
